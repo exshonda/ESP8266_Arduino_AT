@@ -6,6 +6,8 @@
  * 
  * @par Copyright:
  * Copyright (c) 2015 ITEAD Intelligent Systems Co., Ltd. \n\n
+ * Copyright (C) 2015 Embedded and Real-Time Systems Laboratory
+ *              Graduate School of Information Science, Nagoya Univ., JAPAN \n\n
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License as
  * published by the Free Software Foundation; either version 2 of
@@ -22,6 +24,12 @@
 
 #define LOG_OUTPUT_DEBUG            (1)
 #define LOG_OUTPUT_DEBUG_PREFIX     (1)
+
+#ifdef TOPPERS_WITH_ARDUINO
+#define WAIT_TIMEOUT delay(1);
+#else /* !TOPPERS_WITH_ARDUINO */
+#define WAIT_TIMEOUT
+#endif /* TOPPERS_WITH_ARDUINO */
 
 #define logDebug(arg)\
     do {\
@@ -42,14 +50,18 @@
     } while(0)
 
 #ifdef ESP8266_USE_SOFTWARE_SERIAL
-ESP8266::ESP8266(SoftwareSerial &uart, uint32_t baud): m_puart(&uart)
+void ESP8266::begin(SoftwareSerial &uart, uint32_t baud)
 {
+    m_puart = &uart;
+    m_baud = baud;
     m_puart->begin(baud);
     rx_empty();
 }
 #else
-ESP8266::ESP8266(HardwareSerial &uart, uint32_t baud): m_puart(&uart)
+void ESP8266::begin(HardwareSerial &uart, uint32_t baud)
 {
+    m_puart = &uart;
+    m_baud = baud;
     m_puart->begin(baud);
     rx_empty();
 }
@@ -64,7 +76,9 @@ bool ESP8266::restart(void)
 {
     unsigned long start;
     if (eATRST()) {
+        m_puart->end();
         delay(2000);
+        m_puart->begin(m_baud);
         start = millis();
         while (millis() - start < 3000) {
             if (eAT()) {
@@ -268,6 +282,16 @@ bool ESP8266::send(uint8_t mux_id, const uint8_t *buffer, uint32_t len)
     return sATCIPSENDMultiple(mux_id, buffer, len);
 }
 
+bool ESP8266::send(String &str)
+{
+    return sATCIPSENDSingle(str);
+}
+
+bool ESP8266::send(uint8_t mux_id, String &str)
+{
+    return sATCIPSENDMultiple(mux_id, str);
+}
+
 uint32_t ESP8266::recv(uint8_t *buffer, uint32_t buffer_size, uint32_t timeout)
 {
     return recvPkg(buffer, buffer_size, NULL, timeout, NULL);
@@ -289,6 +313,11 @@ uint32_t ESP8266::recv(uint8_t *coming_mux_id, uint8_t *buffer, uint32_t buffer_
     return recvPkg(buffer, buffer_size, NULL, timeout, coming_mux_id);
 }
 
+int ESP8266::dataAvailable(void)
+{
+    return (m_puart->available() > 0)? 1 : 0;
+}
+            
 /*----------------------------------------------------------------------------*/
 /* +IPD,<id>,<len>:<data> */
 /* +IPD,<len>:<data> */
@@ -316,6 +345,8 @@ uint32_t ESP8266::recvPkg(uint8_t *buffer, uint32_t buffer_size, uint32_t *data_
         if(m_puart->available() > 0) {
             a = m_puart->read();
             data += a;
+        }else{
+            WAIT_TIMEOUT;
         }
         
         index_PIPDcomma = data.indexOf("+IPD,");
@@ -347,7 +378,7 @@ uint32_t ESP8266::recvPkg(uint8_t *buffer, uint32_t buffer_size, uint32_t *data_
     
     if (has_data) {
         i = 0;
-        ret = len > buffer_size ? buffer_size : len;
+        ret = (uint32_t)len > buffer_size ? buffer_size : len;
         start = millis();
         while (millis() - start < 3000) {
             while(m_puart->available() > 0 && i < ret) {
@@ -364,6 +395,7 @@ uint32_t ESP8266::recvPkg(uint8_t *buffer, uint32_t buffer_size, uint32_t *data_
                 }
                 return ret;
             }
+            WAIT_TIMEOUT
         }
     }
     return 0;
@@ -384,12 +416,13 @@ String ESP8266::recvString(String target, uint32_t timeout)
     while (millis() - start < timeout) {
         while(m_puart->available() > 0) {
             a = m_puart->read();
-			if(a == '\0') continue;
+            if(a == '\0') continue;
             data += a;
         }
         if (data.indexOf(target) != -1) {
             break;
-        }   
+        }
+        WAIT_TIMEOUT
     }
     return data;
 }
@@ -402,7 +435,7 @@ String ESP8266::recvString(String target1, String target2, uint32_t timeout)
     while (millis() - start < timeout) {
         while(m_puart->available() > 0) {
             a = m_puart->read();
-			if(a == '\0') continue;
+            if(a == '\0') continue;
             data += a;
         }
         if (data.indexOf(target1) != -1) {
@@ -410,6 +443,7 @@ String ESP8266::recvString(String target1, String target2, uint32_t timeout)
         } else if (data.indexOf(target2) != -1) {
             break;
         }
+        WAIT_TIMEOUT
     }
     return data;
 }
@@ -422,7 +456,7 @@ String ESP8266::recvString(String target1, String target2, String target3, uint3
     while (millis() - start < timeout) {
         while(m_puart->available() > 0) {
             a = m_puart->read();
-			if(a == '\0') continue;
+            if(a == '\0') continue;
             data += a;
         }
         if (data.indexOf(target1) != -1) {
@@ -432,6 +466,7 @@ String ESP8266::recvString(String target1, String target2, String target3, uint3
         } else if (data.indexOf(target3) != -1) {
             break;
         }
+        WAIT_TIMEOUT
     }
     return data;
 }
@@ -481,7 +516,7 @@ bool ESP8266::eATGMR(String &version)
 {
     rx_empty();
     m_puart->println("AT+GMR");
-    return recvFindAndFilter("OK", "\r\r\n", "\r\n\r\nOK", version); 
+    return recvFindAndFilter("OK", "\r\r\n", "\r\nOK", version); 
 }
 
 bool ESP8266::qATCWMODE(uint8_t *mode) 
@@ -645,6 +680,36 @@ bool ESP8266::sATCIPSENDMultiple(uint8_t mux_id, const uint8_t *buffer, uint32_t
         rx_empty();
         for (uint32_t i = 0; i < len; i++) {
             m_puart->write(buffer[i]);
+        }
+        return recvFind("SEND OK", 10000);
+    }
+    return false;
+}
+bool ESP8266::sATCIPSENDSingle(String &str)
+{
+    rx_empty();
+    m_puart->print("AT+CIPSEND=");
+    m_puart->println(str.length());
+    if (recvFind(">", 5000)) {
+        rx_empty();
+        for (uint32_t i = 0; i < str.length(); i++) {
+            m_puart->write(str.charAt(i));
+        }
+        return recvFind("SEND OK", 10000);
+    }
+    return false;
+}
+bool ESP8266::sATCIPSENDMultiple(uint8_t mux_id, String &str)
+{
+    rx_empty();
+    m_puart->print("AT+CIPSEND=");
+    m_puart->print(mux_id);
+    m_puart->print(",");
+    m_puart->println(str.length());
+    if (recvFind(">", 5000)) {
+        rx_empty();
+        for (uint32_t i = 0; i < str.length(); i++) {
+            m_puart->write(str.charAt(i));
         }
         return recvFind("SEND OK", 10000);
     }

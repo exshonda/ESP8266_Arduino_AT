@@ -1,23 +1,29 @@
 @mainpage
 
-# WeeESP8266
+# WeeESP8266 updated for Milkcoca SDK
 
 An ESP8266 library for Arduino providing an easy-to-use way to manipulate ESP8266.
 
-# Source 
+Updated to support Milkcoca SDK <https://github.com/milk-cocoa/Milkcocoa_Arduino_SDK>, 
+Arudino M0 and TOPPERS/R2CA.
 
-Source can be download at <https://github.com/itead/ITEADLIB_Arduino_WeeESP8266>.
+All samples are tested with Arudino M0 Pro. To execute other Arudino 
+(UNO, Mega..), you have to change sample programs.
+
+# Source 
+Source can be download at <https://github.com/exshonda/ESP8266_Arduino_AT>.
+Original source can be download at <https://github.com/itead/ITEADLIB_Arduino_WeeESP8266>.
 
 You can clone it by:
 
-    git clone https://github.com/itead/ITEADLIB_Arduino_WeeESP8266.git
+    git clone https://github.com/exshonda/ESP8266_Arduino_AT
 
 # Documentation
 
-Online API documentation can be reached at <http://docs.iteadstudio.com/ITEADLIB_Arduino_WeeESP8266/index.html>.
+Original Online API documentation can be reached at <http://docs.iteadstudio.com/ITEADLIB_Arduino_WeeESP8266/index.html>.
 
 Offline API documentation can be found under directory 
-[doc](https://github.com/itead/ITEADLIB_Arduino_WeeESP8266/tree/master/doc).
+[doc](https://github.com/exshonda/ESP8266_Arduino_AT/tree/master/doc).
 
 # How to get started
 
@@ -92,6 +98,17 @@ will be useful for Arduino lovers.
      
     uint32_t 	recv (uint8_t *coming_mux_id, uint8_t *buffer, uint32_t buffer_size, uint32_t timeout=1000) : Receive data from all of TCP or UDP builded already in multiple mode. 
 
+# Added API List
+
+    void 	begin(SoftwareSerial &uart, uint32_t baud = 115200); : Begin ESP8266.
+
+    void 	begin(SoftwareSerial &uart, uint32_t baud = 115200); : Begin ESP8266.
+
+    bool 	send(String &str); : Send data based on TCP or UDP builded already in single mode. 
+
+    bool 	send(uint8_t mux_id, String &str); : Send data based on one of TCP or UDP builded already in multiple mode. 
+
+    int 	dataAvailable(void); : Check data is available.
 
 # Mainboard Requires
 
@@ -102,6 +119,7 @@ will be useful for Arduino lovers.
   
   - Arduino UNO and its derivatives
   - Arduino MEGA and its derivatives
+  - Arduino M0 and its derivatives
   - [Iteaduino UNO](http://imall.iteadstudio.com/im130312001.html)
   - [WBoard Pro](http://imall.iteadstudio.com/im141125005.html)
 
@@ -164,13 +182,24 @@ The size of data from ESP8266 is too big for arduino sometimes, so the library c
 receive the whole buffer because the size of the hardware serial buffer which is 
 defined in HardwareSerial.h is too small.
 
+UNO or MEGA or WBoard Pro
 Open the file from `\arduino\hardware\arduino\avr\cores\arduino\HardwareSerial.h`. 
-See the follow line in the HardwareSerial.h file.
+
+M0
+Open the file from `\arduino\hardware\arduino\avr\cores\arduino\RingBuffer.h`. 
+See the follow line in the file.
 
     #define SERIAL_BUFFER_SIZE 64
 
 The default size of the buffer is 64. Change it into a bigger number, like 256 or more.
 
+
+The Arduino library delivered by IDE 1.7.7 has memory leak bug. 
+Fix file ./hardware/arduino/samd/cores/arduino/USB/samd21_device.c, line 152.
+
+    for (i = 0; i < sizeof(usb_endpoint_table)/4; i++) {
+       (*(uint32_t *)((uint32_t *)(&usb_endpoint_table[0])+i)) = 0;
+    }
 
 -------------------------------------------------------------------------------
 

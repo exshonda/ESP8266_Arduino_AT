@@ -26,12 +26,14 @@
 #define HOST_NAME   "172.16.5.12"
 #define HOST_PORT   (5416)
 
-ESP8266 wifi(Serial1);
+ESP8266 wifi;
  
 void setup(void)
 {
     Serial.begin(9600);  
     Serial.print("setup begin\r\n");
+
+    wifi.begin(Serial5);
     
     Serial.print("FW Version:");
     Serial.println(wifi.getVersion().c_str());

@@ -6,6 +6,8 @@
  * 
  * @par Copyright:
  * Copyright (c) 2015 ITEAD Intelligent Systems Co., Ltd. \n\n
+ * Copyright (C) 2015 Embedded and Real-Time Systems Laboratory
+ *              Graduate School of Information Science, Nagoya Univ., JAPAN \n\n  
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License as
  * published by the Free Software Foundation; either version 2 of
@@ -40,24 +42,24 @@ class ESP8266 {
 
 #ifdef ESP8266_USE_SOFTWARE_SERIAL
     /*
-     * Constuctor. 
+     * Begin.
      *
      * @param uart - an reference of SoftwareSerial object. 
-     * @param baud - the buad rate to communicate with ESP8266(default:9600). 
+     * @param baud - the buad rate to communicate with ESP8266(default:115200). 
      *
-     * @warning parameter baud depends on the AT firmware. 9600 is an common value. 
+     * @warning parameter baud depends on the AT firmware. 115200 is an common value. 
      */
-    ESP8266(SoftwareSerial &uart, uint32_t baud = 9600);
+    void begin(SoftwareSerial &uart, uint32_t baud = 115200);
 #else /* HardwareSerial */
     /*
-     * Constuctor. 
+     * Begin.
      *
      * @param uart - an reference of HardwareSerial object. 
-     * @param baud - the buad rate to communicate with ESP8266(default:9600). 
+     * @param baud - the buad rate to communicate with ESP8266(default:115200). 
      *
-     * @warning parameter baud depends on the AT firmware. 9600 is an common value. 
+     * @warning parameter baud depends on the AT firmware. 115200 is an common value. 
      */
-    ESP8266(HardwareSerial &uart, uint32_t baud = 9600);
+    void begin(HardwareSerial &uart, uint32_t baud = 115200);
 #endif
     
     
@@ -347,6 +349,25 @@ class ESP8266 {
      * @retval false - failure.
      */
     bool send(uint8_t mux_id, const uint8_t *buffer, uint32_t len);
+
+    /**
+     * Send data based on TCP or UDP builded already in single mode. 
+     * 
+     * @param str - String to send. 
+     * @retval true - success.
+     * @retval false - failure.
+     */
+    bool send(String &str);
+    
+    /**
+     * Send data based on one of TCP or UDP builded already in multiple mode. 
+     * 
+     * @param mux_id - the identifier of this TCP(available value: 0 - 4). 
+     * @param str - String to send. 
+     * @retval true - success.
+     * @retval false - failure.
+     */
+    bool send(uint8_t mux_id, String &str);
     
     /**
      * Receive data from TCP or UDP builded already in single mode. 
@@ -382,6 +403,13 @@ class ESP8266 {
      * @return the length of data received actually. 
      */
     uint32_t recv(uint8_t *coming_mux_id, uint8_t *buffer, uint32_t buffer_size, uint32_t timeout = 1000);
+
+    /**
+     * Check data is available.
+     *
+     * @return 1 : data is available, 0 : data is not available
+     */
+    int dataAvailable(void);
 
  private:
 
@@ -445,6 +473,8 @@ class ESP8266 {
     bool sATCIPSTARTMultiple(uint8_t mux_id, String type, String addr, uint32_t port);
     bool sATCIPSENDSingle(const uint8_t *buffer, uint32_t len);
     bool sATCIPSENDMultiple(uint8_t mux_id, const uint8_t *buffer, uint32_t len);
+    bool sATCIPSENDSingle(String &str);
+    bool sATCIPSENDMultiple(uint8_t mux_id, String &str);    
     bool sATCIPCLOSEMulitple(uint8_t mux_id);
     bool eATCIPCLOSESingle(void);
     bool eATCIFSR(String &list);
@@ -462,6 +492,7 @@ class ESP8266 {
 #else
     HardwareSerial *m_puart; /* The UART to communicate with ESP8266 */
 #endif
+    uint32_t m_baud;
 };
 
 #endif /* #ifndef __ESP8266_H__ */
