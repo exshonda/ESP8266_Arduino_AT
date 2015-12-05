@@ -5,7 +5,7 @@
 An ESP8266 library for Arduino providing an easy-to-use way to manipulate ESP8266.
 
 Updated to support Milkcoca SDK <https://github.com/milk-cocoa/Milkcocoa_Arduino_SDK>, 
-Arudino M0 and TOPPERS/R2CA.
+Arudino M0 and TOPPERS/R2CA(http://dev.toppers.jp/trac_user/contrib/browser/rtos_arduino).
 
 All samples are tested with Arudino M0 Pro. To execute other Arudino 
 (UNO, Mega..), you have to change sample programs.
